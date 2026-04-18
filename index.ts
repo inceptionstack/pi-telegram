@@ -1056,6 +1056,10 @@ export default function (pi: ExtensionAPI) {
 			}
 			if (wasPolling && config.botToken) {
 				await startPolling(ctx);
+				// Send reload confirmation to Telegram
+				if (config.allowedUserId) {
+					await callTelegram("sendMessage", { chat_id: config.allowedUserId, text: "pong!" });
+				}
 			}
 		}
 
