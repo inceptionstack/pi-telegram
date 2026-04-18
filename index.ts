@@ -1020,6 +1020,15 @@ export default function (pi: ExtensionAPI) {
 		},
 	});
 
+	pi.registerCommand("reload", {
+		description: "Reload pi extensions, skills, prompts, and themes (works from Telegram)",
+		handler: async (_args, ctx) => {
+			ctx.ui.notify("🔄 Reloading...", "info");
+			await ctx.reload();
+			return;
+		},
+	});
+
 	pi.on("session_start", async (_event, ctx) => {
 		config = await readConfig();
 		await mkdir(TEMP_DIR, { recursive: true });
