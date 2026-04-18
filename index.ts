@@ -1029,13 +1029,30 @@ export default function (pi: ExtensionAPI) {
 		},
 	});
 
-	pi.on("session_start", async (_event, ctx) => {
+	pi.on("session_start", async (event, ctx) => {
 		config = await readConfig();
 		await mkdir(TEMP_DIR, { recursive: true });
+
+		// Restore polling state after reload
+		if (event.reason === "reload") {
+			let wasPolling = false;
+			for (const entry of ctx.sessionManager.getEntries()) {
+				if (entry.type === "custom" && entry.customType === "telegram-polling-state") {
+					wasPolling = (entry.data as { polling?: boolean })?.polling ?? false;
+				}
+			}
+			if (wasPolling && config.botToken) {
+				await startPolling(ctx);
+			}
+		}
+
 		updateStatus(ctx);
 	});
 
 	pi.on("session_shutdown", async (_event, _ctx) => {
+		// Persist polling state so we can restore after reload
+		pi.appendEntry("telegram-polling-state", { polling: !!pollingPromise });
+
 		queuedTelegramTurns = [];
 		for (const state of mediaGroups.values()) {
 			if (state.flushTimer) clearTimeout(state.flushTimer);
