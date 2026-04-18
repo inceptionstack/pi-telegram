@@ -820,11 +820,21 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
+		if (lower === "/reloadall") {
+			await sendTextReply(firstMessage.chat.id, firstMessage.message_id, "🔄 Reloading all extensions...");
+			// Emit event — the reloadall command handler listens for this
+			// and calls ctx.reload() from its command context
+			setTimeout(() => {
+				pi.sendUserMessage("/reloadall");
+			}, 100);
+			return;
+		}
+
 		if (lower === "/help" || lower === "/start") {
 			await sendTextReply(
 				firstMessage.chat.id,
 				firstMessage.message_id,
-				`Send me a message and I will forward it to pi. Commands: /status, /compact, stop.`,
+				`Send me a message and I will forward it to pi. Commands: /status, /reloadall, /compact, /stop`,
 			);
 			if (config.allowedUserId === undefined && firstMessage.from) {
 				config.allowedUserId = firstMessage.from.id;
@@ -837,20 +847,6 @@ export default function (pi: ExtensionAPI) {
 		const historyTurns = preserveQueuedTurnsAsHistory ? queuedTelegramTurns.splice(0) : [];
 		preserveQueuedTurnsAsHistory = false;
 
-		// Handle /reloadall directly from Telegram
-		const cmdText = (messages[0]?.text || "").trim().toLowerCase();
-		if (cmdText === "/reloadall" && messages.length === 1) {
-			if (config.allowedUserId) {
-				await callTelegram("sendMessage", { chat_id: config.allowedUserId, text: "🔄 Reloading..." });
-			}
-			// Trigger reload via the registered command
-			if (ctx.isIdle()) {
-				pi.sendUserMessage("/reloadall");
-			} else {
-				pi.sendUserMessage("/reloadall", { deliverAs: "followUp" });
-			}
-			return;
-		}
 
 		const turn = await createTelegramTurn(messages, historyTurns);
 		queuedTelegramTurns.push(turn);
@@ -957,6 +953,17 @@ export default function (pi: ExtensionAPI) {
 			pollingController = undefined;
 			updateStatus(ctx);
 		});
+
+		// Register bot menu commands with Telegram
+		await callTelegram("setMyCommands", {
+			commands: [
+				{ command: "status", description: "Show bot status" },
+				{ command: "reloadall", description: "Reload all pi extensions" },
+				{ command: "compact", description: "Compact conversation history" },
+				{ command: "stop", description: "Stop current generation" },
+			],
+		}).catch(() => {}); // ignore errors (non-critical)
+
 		updateStatus(ctx);
 	}
 
