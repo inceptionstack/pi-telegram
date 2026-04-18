@@ -837,11 +837,13 @@ export default function (pi: ExtensionAPI) {
 		const historyTurns = preserveQueuedTurnsAsHistory ? queuedTelegramTurns.splice(0) : [];
 		preserveQueuedTurnsAsHistory = false;
 
-		// Intercept slash commands from Telegram and execute them directly
-		const cmdText = messages.map((m) => (m.text || m.caption || "").trim()).filter(Boolean).join("\n");
-		if (cmdText.startsWith("/") && !cmdText.startsWith("/ ")) {
-			// Starts with / — send as a pi command (bypasses [telegram] prefix)
-			pi.sendUserMessage(cmdText);
+		// Intercept slash commands from Telegram and execute them directly.
+		// Only check the first message's text (not captions), only single text messages, only when idle.
+		const cmdText = (messages[0]?.text || "").trim();
+		if (cmdText.startsWith("/") && !cmdText.startsWith("/ ") && messages.length === 1 && !messages[0]?.photo && !messages[0]?.document) {
+			if (ctx.isIdle()) {
+				pi.sendUserMessage(cmdText);
+			}
 			return;
 		}
 
@@ -1032,9 +1034,9 @@ export default function (pi: ExtensionAPI) {
 	pi.registerCommand("reloadall", {
 		description: "Reload pi extensions, skills, prompts, and themes (works from Telegram)",
 		handler: async (_args, ctx) => {
+			await ctx.waitForIdle();
 			ctx.ui.notify("🔄 Reloading...", "info");
 			await ctx.reload();
-			return;
 		},
 	});
 
@@ -1059,8 +1061,10 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_shutdown", async (_event, _ctx) => {
-		// Persist polling state so we can restore after reload
-		pi.appendEntry("telegram-polling-state", { polling: !!pollingPromise });
+		// Persist polling state only if we were actively polling
+		if (pollingPromise) {
+			pi.appendEntry("telegram-polling-state", { polling: true });
+		}
 
 		queuedTelegramTurns = [];
 		for (const state of mediaGroups.values()) {
