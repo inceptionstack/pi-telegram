@@ -838,10 +838,10 @@ export default function (pi: ExtensionAPI) {
 		preserveQueuedTurnsAsHistory = false;
 
 		// Intercept slash commands from Telegram and execute them directly
-		const rawText = messages.map((m) => (m.text || m.caption || "").trim()).filter(Boolean).join("\n");
-		if (rawText.startsWith("/") && !rawText.startsWith("/ ")) {
+		const cmdText = messages.map((m) => (m.text || m.caption || "").trim()).filter(Boolean).join("\n");
+		if (cmdText.startsWith("/") && !cmdText.startsWith("/ ")) {
 			// Starts with / — send as a pi command (bypasses [telegram] prefix)
-			pi.sendUserMessage(rawText);
+			pi.sendUserMessage(cmdText);
 			return;
 		}
 
