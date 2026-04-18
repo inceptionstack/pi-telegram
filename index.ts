@@ -843,6 +843,8 @@ export default function (pi: ExtensionAPI) {
 		if (cmdText.startsWith("/") && !cmdText.startsWith("/ ") && messages.length === 1 && !messages[0]?.photo && !messages[0]?.document) {
 			if (ctx.isIdle()) {
 				pi.sendUserMessage(cmdText);
+			} else {
+				pi.sendUserMessage(cmdText, { deliverAs: "followUp" });
 			}
 			return;
 		}
@@ -1061,10 +1063,8 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_shutdown", async (_event, _ctx) => {
-		// Persist polling state only if we were actively polling
-		if (pollingPromise) {
-			pi.appendEntry("telegram-polling-state", { polling: true });
-		}
+		// Persist polling state so we can restore after reload
+		pi.appendEntry("telegram-polling-state", { polling: !!pollingPromise });
 
 		queuedTelegramTurns = [];
 		for (const state of mediaGroups.values()) {
