@@ -837,14 +837,17 @@ export default function (pi: ExtensionAPI) {
 		const historyTurns = preserveQueuedTurnsAsHistory ? queuedTelegramTurns.splice(0) : [];
 		preserveQueuedTurnsAsHistory = false;
 
-		// Intercept slash commands from Telegram and execute them directly.
-		// Only check the first message's text (not captions), only single text messages, only when idle.
-		const cmdText = (messages[0]?.text || "").trim();
-		if (cmdText.startsWith("/") && !cmdText.startsWith("/ ") && messages.length === 1 && !messages[0]?.photo && !messages[0]?.document) {
+		// Handle /reloadall directly from Telegram
+		const cmdText = (messages[0]?.text || "").trim().toLowerCase();
+		if (cmdText === "/reloadall" && messages.length === 1) {
+			if (config.allowedUserId) {
+				await callTelegram("sendMessage", { chat_id: config.allowedUserId, text: "🔄 Reloading..." });
+			}
+			// Trigger reload via the registered command
 			if (ctx.isIdle()) {
-				pi.sendUserMessage(cmdText);
+				pi.sendUserMessage("/reloadall");
 			} else {
-				pi.sendUserMessage(cmdText, { deliverAs: "followUp" });
+				pi.sendUserMessage("/reloadall", { deliverAs: "followUp" });
 			}
 			return;
 		}
