@@ -1020,7 +1020,7 @@ export default function (pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("reloadplugins", {
+	pi.registerCommand("reloadall", {
 		description: "Reload pi extensions, skills, prompts, and themes (works from Telegram)",
 		handler: async (_args, ctx) => {
 			ctx.ui.notify("🔄 Reloading...", "info");
