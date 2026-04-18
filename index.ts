@@ -836,6 +836,15 @@ export default function (pi: ExtensionAPI) {
 
 		const historyTurns = preserveQueuedTurnsAsHistory ? queuedTelegramTurns.splice(0) : [];
 		preserveQueuedTurnsAsHistory = false;
+
+		// Intercept slash commands from Telegram and execute them directly
+		const rawText = messages.map((m) => (m.text || m.caption || "").trim()).filter(Boolean).join("\n");
+		if (rawText.startsWith("/") && !rawText.startsWith("/ ")) {
+			// Starts with / — send as a pi command (bypasses [telegram] prefix)
+			pi.sendUserMessage(rawText);
+			return;
+		}
+
 		const turn = await createTelegramTurn(messages, historyTurns);
 		queuedTelegramTurns.push(turn);
 		if (ctx.isIdle()) {
